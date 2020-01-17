@@ -1,0 +1,15 @@
+version: 0.2  
+phases:  
+  install:  
+    runtime-versions:  
+      nodejs: 8  
+  build:  
+    commands:  
+      - echo "Nothing to do yet"  
+artifacts:  
+  files:  
+    - index.html  
+    - favicon.ico 
+    - justin-sparks-resume-9-23-2019.pdf 
+    - styles/*  
+    - images/*

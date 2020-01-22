@@ -15,15 +15,31 @@ def lambda_handler(event, context):
     # A topic is a logical access point which acts as a communication channel
     topic = sns.Topic('arn:aws:sns:us-east-1:928335481473:deploy-react-portfolio-topic')
 
+    location = {
+        'bucketName': 'justin-sparks-react-portfolio-build',
+        'objectKey': 'reactPortfolioBuild.zip'
+    }
+
     try:
+        # Getting the job object from the event object
+        job = event.get('CodePipeline.job')
+        # If the job isnt invoked by pipeline, there wont be a job.
+        if job:
+            # Looping through artifacts in inputArtifacts[] from event object in json file.
+            # CodePipeline.job > data > inputArtifacts > name
+            for artifact in job['data']['inputArtifacts']:
+                if artifact['name'] == 'BuildArtifact':
+                    location = artifact['location']['s3Location']
+            print('Building portfolio from ' + str(location))
+
         s3 = boto3.resource('s3')
 
         portfolio_bucket = s3.Bucket('justin-sparks-react-portfolio')
-        build_bucket = s3.Bucket('justin-sparks-react-portfolio-build')
+        build_bucket = s3.Bucket(location["bucketName"])
 
         # Downloading the zip file to memory, not folder structure 
         portfolio_zip = BytesIO()
-        build_bucket.download_fileobj('reactPortfolioBuild.zip', portfolio_zip)
+        build_bucket.download_fileobj(location["objectKey"], portfolio_zip)
 
         # extracting the files from the zip folder
         with zipfile.ZipFile(portfolio_zip) as myzip:
@@ -39,6 +55,9 @@ def lambda_handler(event, context):
 
         # Publishing (sending) an email to subscription list (list of emails; only my email at the moment) that portfolio was deployed successfully
         topic.publish(Subject="Portfolio Deploy", Message="Portfolio was deployed successfully.")
+        if job:
+            codepipeline = boto3.client('codepipeline')
+            codepipeline.put_job_success_result(jobId=job['id'])
         return {
             'statusCode': 200,
             'body': json.dumps('The function ran properly. Everything works!')

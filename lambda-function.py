@@ -29,6 +29,8 @@ def lambda_handler(event, context):
             # CodePipeline.job > data > inputArtifacts > name
             for artifact in job['data']['inputArtifacts']:
                 if artifact['name'] == 'BuildArtifact':
+                    # s3Location (in job event json file) lists the bucket name and artifact name (objectKey)
+                    # for the input artifact from codepipeline s3 bucket
                     location = artifact['location']['s3Location']
             print('Building portfolio from ' + str(location))
 
@@ -56,7 +58,9 @@ def lambda_handler(event, context):
         # Publishing (sending) an email to subscription list (list of emails; only my email at the moment) that portfolio was deployed successfully
         topic.publish(Subject="Portfolio Deploy", Message="Portfolio was deployed successfully.")
         if job:
+            # Use client, not resource. No resource for pipeline.
             codepipeline = boto3.client('codepipeline')
+            # Lambda needs to tell codepipeline that it ran successfully.
             codepipeline.put_job_success_result(jobId=job['id'])
         return {
             'statusCode': 200,

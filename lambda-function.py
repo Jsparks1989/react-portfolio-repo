@@ -10,6 +10,10 @@ import zipfile
 def lambda_handler(event, context):
     
     s3 = boto3.resource('s3')
+    sns = boto3.resource('sns')
+    # SNS Topic is the deployment of react portfolio by email
+    # A topic is a logical access point which acts as a communication channel
+    topic = sns.Topic('arn:aws:sns:us-east-1:928335481473:deploy-react-portfolio-topic')
 
     portfolio_bucket = s3.Bucket('justin-sparks-react-portfolio')
     build_bucket = s3.Bucket('justin-sparks-react-portfolio-build')
@@ -30,6 +34,8 @@ def lambda_handler(event, context):
             # setting each file in portfolio bucket to public-read
             portfolio_bucket.Object(nm).Acl().put(ACL='public-read')
 
+    # Publishing (sending) an email to subscription list (list of emails; only my email at the moment) that portfolio was deployed successfully
+    topic.publish(Subject="Portfolio Deploy", Message="Portfolio was deployed successfully")
     return {
         'statusCode': 200,
         'body': json.dumps('Hello from Lambda!')
